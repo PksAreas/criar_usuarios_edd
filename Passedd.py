@@ -1,23 +1,50 @@
 from netmiko import ConnectHandler
 from netmiko import NetMikoTimeoutException
 from netmiko import exceptions
-from getpass import getpass
+import tkinter as tk
+from tkinter import ttk
+
 import tkinter as tk
 
-def consulta():
-    user = input('Enter your username: ')
-    password = getpass(prompt='Enter your password: ')
-        
-    pass_type = int(input('''Type of password [0 or 7]
-0  Specify password in plain text
-7  Specify password in encrypted form
-Enter the type of password: '''))
+def pop_up(texto: str) -> str:
 
-    new_user = input('enter the user to be searched: ')
-    new_pass = input('enter the new password: ')
+    def yes():
+        nonlocal resposta
+        resposta = 'y'
+        windows.destroy()
 
-    access_level = int(input('enter the access level [0...15] : '))
+    def no():
+        nonlocal resposta
+        resposta = 'n'
+        windows.destroy()
 
+    # Criação da janela
+    windows = tk.Toplevel()
+    windows.title('Aviso')
+    windows.geometry('300x100')
+    windows.resizable(False, False)  # Impede redimensionamento
+
+    # Widgets da janela
+    label = tk.Label(windows, text=texto, font=("Arial", 12), wraplength=280)
+    botao_yes = tk.Button(windows, text='YES', command=yes, width=10, bg='green', fg='white')
+    botao_no = tk.Button(windows, text='NO', command=no, width=10, bg='red', fg='white')
+
+    # Layout dos widgets
+    label.pack(pady=10)
+    botao_yes.pack(side=tk.LEFT, padx=20, pady=10)
+    botao_no.pack(side=tk.RIGHT, padx=20, pady=10)
+
+    # Variável de resposta
+    resposta = 'none'
+
+    # Inicia o loop da janela
+    windows.grab_set()  # Impede interação com a janela principal
+    windows.wait_window()  # Aguarda o fechamento da janela
+    print (resposta)
+    return resposta
+
+
+def consulta(user,password,new_user,new_pass,passwd_type,access_level):   
     with open('ip.txt','r') as file:
         ips = file.read()
     
@@ -26,7 +53,8 @@ Enter the type of password: '''))
             'device_type': 'cisco_ios',
             'ip': ip,
             'username': user,
-            'password': password
+            'password': password,
+            'session_log': 'log.txt'
         }
         
         try:
@@ -40,41 +68,56 @@ Enter the type of password: '''))
 
             for i in usuarios.splitlines():
                 if new_user in i:
-                    print('Usuario encontrado. Deseja Alterar a senha?')
-                    resposta = input('Digite y(sim) ou n(não): ')
+                    
+                    texto = 'Usuario encontrado. Deseja Alterar a senha?'
+                    resposta = str(pop_up(texto))
+                    print (resposta)
+
                     match resposta:
                         case 'y':
                             print('Alterando senha...')
                             try: 
                                 net_connect.send_command_timing('config')
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
-                                net_connect.send_command_timing(f'username {new_user} password {pass_type} {new_pass}')
+                                net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
                                 print('Senha alterada com sucesso!')
+                                net_connect.disconnect()
                             except Exception as e:
                                 print(f'Erro: {e}')
+                                net_connect.disconnect()
+                            continue
                         case 'n':
                             print('Nada foi alterado.')
+                            net_connect.disconnect()
+                            continue
                 else:
-                    print('Usuario não encontrado.')
-                    print('Deseja criar o usuario?')
-                    resposta = input('Digite y(sim) ou n(não): ')
+
+                    texto = 'Usuario não encontrado. Deseja criar o usuario?'
+                    resposta = pop_up(texto)
+                    print (resposta)
+                    
                     match resposta:
                         case 'y':
                             print('Criando usuario...')
                             try: 
                                 net_connect.send_command_timing('config')
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
-                                net_connect.send_command_timing(f'username {new_user} password {pass_type} {new_pass}')
-                                print('Usuario criado com sucesso!')    
+                                net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
+                                print('Usuario criado com sucesso!')
+                                net_connect.disconnect()
                             except Exception as e:
                                 print(f'Erro: {e}')
+                                net_connect.disconnect()
+                            continue
                         case 'n':
                             print('Nada foi alterado.')
+                            net_connect.disconnect()
+                            
+                            continue
         except NetMikoTimeoutException:
             print(f'Erro de conexão com o dispositivo {ip}')
         except exceptions.ReadTimeout:
             print(f'O dispositivo {ip} demorou para responder')
-
 
 def interface():
 
@@ -85,12 +128,12 @@ def interface():
         newpass = new_pass.get()
         accesslevel = access_level.get()
         passwdtype = passwd_type.get()
-        print(username,password,newuser,newpass,passwdtype,accesslevel)
+        consulta(username,password,newuser,newpass,passwdtype,accesslevel)
 
     #Configuração da janela
     janela = tk.Tk()
     janela.title('EDD')
-    janela.geometry('300x200')
+    janela.geometry('200x300')
 
     #Configuração dos widgets (Caixa de texto e botões)
     label_user = tk.Label(janela, text='User')
@@ -101,10 +144,14 @@ def interface():
     new_user = tk.Entry(janela)
     new_pass_label = tk.Label(janela, text='New Password')
     new_pass = tk.Entry(janela)
+
+    #"Drop Menu"
+    level = ['0','15']
+    type = ['0','7']
     access_level_label = tk.Label(janela, text='Access Level')
-    access_level = tk.Entry(janela)
+    access_level = ttk.Combobox(janela, values=level,width=2)
     passwd_type_label = tk.Label(janela, text='Password Type')
-    passwd_type = tk.Entry(janela)
+    passwd_type = ttk.Combobox(janela, values=type,width=2)
 
     #Botão de enviar
     botão_enviar = tk.Button(janela,text='Enviar',command=enviar)
@@ -115,14 +162,14 @@ def interface():
     label_passwd.pack()
     passwd.pack()
     new_user_label.pack()
-    new_user.pack()
+    new_user.pack(pady=0)
     new_pass_label.pack()
     new_pass.pack()
-    access_level_label.pack()
-    access_level.pack()
     passwd_type_label.pack()
     passwd_type.pack()
-    botão_enviar.pack()
+    access_level_label.pack()
+    access_level.pack()
+    botão_enviar.pack(pady=15)
 
     #Inicia a janela
     janela.mainloop()
