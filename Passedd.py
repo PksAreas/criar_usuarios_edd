@@ -2,6 +2,7 @@ from netmiko import ConnectHandler
 from netmiko import NetMikoTimeoutException
 from netmiko import exceptions
 from getpass import getpass
+import tkinter as tk
 
 def consulta():
     user = input('Enter your username: ')
@@ -72,5 +73,58 @@ Enter the type of password: '''))
         except NetMikoTimeoutException:
             print(f'Erro de conexão com o dispositivo {ip}')
         except exceptions.ReadTimeout:
-            print(f'Dispositivo demorou muito para responder: {ip}')
-consulta()
+            print(f'O dispositivo {ip} demorou para responder')
+
+
+def interface():
+
+    def enviar():
+        username = user.get()
+        password = passwd.get()
+        newuser = new_user.get()
+        newpass = new_pass.get()
+        accesslevel = access_level.get()
+        passwdtype = passwd_type.get()
+        print(username,password,newuser,newpass,passwdtype,accesslevel)
+
+    #Configuração da janela
+    janela = tk.Tk()
+    janela.title('EDD')
+    janela.geometry('300x200')
+
+    #Configuração dos widgets (Caixa de texto e botões)
+    label_user = tk.Label(janela, text='User')
+    user = tk.Entry(janela)
+    label_passwd = tk.Label(janela, text='Password')
+    passwd = tk.Entry(janela, show='*')
+    new_user_label = tk.Label(janela, text='New User')
+    new_user = tk.Entry(janela)
+    new_pass_label = tk.Label(janela, text='New Password')
+    new_pass = tk.Entry(janela)
+    access_level_label = tk.Label(janela, text='Access Level')
+    access_level = tk.Entry(janela)
+    passwd_type_label = tk.Label(janela, text='Password Type')
+    passwd_type = tk.Entry(janela)
+
+    #Botão de enviar
+    botão_enviar = tk.Button(janela,text='Enviar',command=enviar)
+
+    #Pack dos widgets
+    label_user.pack()
+    user.pack()
+    label_passwd.pack()
+    passwd.pack()
+    new_user_label.pack()
+    new_user.pack()
+    new_pass_label.pack()
+    new_pass.pack()
+    access_level_label.pack()
+    access_level.pack()
+    passwd_type_label.pack()
+    passwd_type.pack()
+    botão_enviar.pack()
+
+    #Inicia a janela
+    janela.mainloop()
+
+interface()
