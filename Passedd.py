@@ -43,7 +43,8 @@ def pop_up(texto,ip):
 def pop_up_notify(texto,ip):
     windows = tk.Toplevel()
     windows.title(ip)
-    windows.geometry('300x100')
+    #windows.geometry('300x100')
+    #windows.resizable(False, False)  # Impede redimensionamento
     
     label = tk.Label(windows,text=texto)
     label.pack(pady=10)
@@ -129,7 +130,7 @@ def consulta(user,password,new_user,new_pass,passwd_type,access_level):
     
     pop_up_notify('Operação concluída!','FIM')
 
-def interface():
+def criar_user_gui():
 
     def enviar():
         username = user.get()
@@ -144,6 +145,7 @@ def interface():
     windows = tk.Toplevel()
     windows.title('EDD')
     windows.geometry('200x300')
+    windows.resizable(False, False)  # Impede redimensionamento
 
     #Configuração dos widgets (Caixa de texto e botões)
     label_user = tk.Label(windows, text='User')
@@ -185,21 +187,102 @@ def interface():
     windows.grab_set()  # Impede interação com a janela principal
     windows.wait_window()  # Aguarda o fechamento da janela
 
+def delete_user(username,password,new_user):
+    with open('ip.txt','r') as file:
+        ips = file.read()
+
+    for ip in ips.split():
+        edd = {
+            'device_type': 'cisco_ios',
+            'ip': ip,
+            'username': username,
+            'password': password,
+            'session_log': 'log.txt'
+        }
+        
+        try:
+            net_connect = ConnectHandler(**edd)
+            net_connect.find_prompt()
+
+            try:
+                usuarios = net_connect.send_command(f'show running-config | include {new_user} password').splitlines()[1]
+            except:
+                usuarios = (' ')
+            
+            for i in usuarios.splitlines():
+                if new_user in i:
+                    try: 
+                        net_connect.send_command_timing('config')
+                        net_connect.send_command_timing(f'no username {new_user}')
+                        net_connect.disconnect()
+                        pop_up_notify('Usuario deletado com sucesso!',ip)
+                    except Exception as e:
+                        net_connect.disconnect()
+                        pop_up_notify(f'Erro ao deletar o usuario!:{e}',ip)
+                    continue
+                else:
+                    pop_up_notify('Usuario não encontrado!',ip)
+                    continue
+
+        except NetMikoTimeoutException:
+            pop_up_notify(f'Erro de conexão com o dispositivo {ip}',ip)
+        except exceptions.ReadTimeout:
+            pop_up_notify(f'O dispositivo {ip} demorou para responder',ip)
+        except exceptions.NetMikoAuthenticationException:
+            pop_up_notify(f'Erro de autenticação no dispositivo {ip}',ip)
+
+def delete_user_gui():
+    
+    def enviar():
+        username = user.get()
+        password = passwd.get()
+        newuser = new_user.get()
+        delete_user(username,password,newuser)
+
+    #Configuração da janela 
+    windows = tk.Toplevel()
+    windows.title('EDD')
+    windows.geometry('200x180')
+    windows.resizable(False, False)  # Impede redimensionamento
+
+    #Configuração dos widgets (Caixa de texto e botões)
+    label_user = tk.Label(windows, text='User')
+    user = tk.Entry(windows)
+    label_passwd = tk.Label(windows, text='Password')
+    passwd = tk.Entry(windows, show='*')
+    new_user_label = tk.Label(windows, text='User to delete')
+    new_user = tk.Entry(windows)
+
+    #Botão de enviar
+    botão_enviar = tk.Button(windows,text='Enviar',command=enviar)
+    
+    #Pack dos widgets
+    label_user.pack()
+    user.pack()
+    label_passwd.pack()
+    passwd.pack()
+    new_user_label.pack()
+    new_user.pack(pady=0)
+    botão_enviar.pack(pady=15)
+
+    #Inicia a janela
+    windows.grab_set()  # Impede interação com a janela principal
+    windows.wait_window()  # Aguarda o fechamento da janela
+
 def main():
     windows = tk.Tk()
     windows.title('EDD')
-    windows.geometry('290x100')
+    windows.geometry('290x500')
     #janela.resizable(False, False)  # Impede redimensionamento
 
     #Configuração dos widgets (Caixa de texto e botões)
-
     label = tk.Label(windows, text='Escolha uma opção:', font=("Arial", 20), wraplength=280)
     label.pack(pady=1)
     
-    criar_user = tk.Button(windows, text='Criar/Alterar Usuario', command=interface)
+    criar_user = tk.Button(windows, text='Criar/Alterar Usuario', command=criar_user_gui)
     criar_user.pack()
 
-    deletar_user = tk.Button(windows, text='Deletar Usuario', command=interface)
+    deletar_user = tk.Button(windows, text='Deletar Usuario', command=delete_user_gui)
     deletar_user.pack()
 
     windows.mainloop()
