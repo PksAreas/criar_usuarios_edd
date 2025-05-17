@@ -4,9 +4,7 @@ from netmiko import exceptions
 import tkinter as tk
 from tkinter import ttk
 
-import tkinter as tk
-
-def pop_up(texto: str) -> str:
+def pop_up(texto,ip):
 
     def yes():
         nonlocal resposta
@@ -20,7 +18,7 @@ def pop_up(texto: str) -> str:
 
     # Criação da janela
     windows = tk.Toplevel()
-    windows.title('Aviso')
+    windows.title(ip)
     windows.geometry('300x100')
     windows.resizable(False, False)  # Impede redimensionamento
 
@@ -41,6 +39,20 @@ def pop_up(texto: str) -> str:
     windows.grab_set()  # Impede interação com a janela principal
     windows.wait_window()  # Aguarda o fechamento da janela
     return resposta
+
+def pop_up_notify(texto,ip):
+    windows = tk.Toplevel()
+    windows.title(ip)
+    windows.geometry('300x100')
+    
+    label = tk.Label(windows,text=texto)
+    label.pack(pady=10)
+    ok = tk.Button(windows, text='OK', command=windows.destroy, width=10, bg='green', fg='white')
+    ok.pack(pady=10)
+
+    windows.grab_set()  # Impede interação com a janela principal
+    windows.wait_window()  # Aguarda o fechamento da janela
+    return None
 
 def consulta(user,password,new_user,new_pass,passwd_type,access_level):   
     with open('ip.txt','r') as file:
@@ -68,7 +80,7 @@ def consulta(user,password,new_user,new_pass,passwd_type,access_level):
                 if new_user in i:
                     
                     texto = 'Usuario encontrado. Deseja Alterar a senha?'
-                    resposta = str(pop_up(texto))
+                    resposta = str(pop_up(texto,ip))
 
                     match resposta:
                         case 'y':
@@ -77,18 +89,20 @@ def consulta(user,password,new_user,new_pass,passwd_type,access_level):
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
                                 net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
                                 net_connect.disconnect()
+                                pop_up_notify('Senha alterada com sucesso!',ip)
                             except Exception as e:
                                 net_connect.disconnect()
+                                pop_up_notify(f'Erro ao alterar a senha!:{e}',ip)
                             continue
                         case 'n':
                             net_connect.disconnect()
+                            pop_up_notify('Operação cancelada!',ip)
                             continue
                 else:
 
                     texto = 'Usuario não encontrado. Deseja criar o usuario?'
-                    resposta = pop_up(texto)
+                    resposta = pop_up(texto,ip)
 
-                    
                     match resposta:
                         case 'y':
                             try: 
@@ -96,17 +110,24 @@ def consulta(user,password,new_user,new_pass,passwd_type,access_level):
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
                                 net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
                                 net_connect.disconnect()
+                                pop_up_notify('Usuario criado com sucesso!',ip)
                             except Exception as e:
                                 net_connect.disconnect()
+                                pop_up_notify(f'Erro ao criar o usuario!:{e}',ip)
                             continue
                         case 'n':
                             net_connect.disconnect()
-                            
+                            pop_up_notify('Operação cancelada!',ip)
                             continue
+
         except NetMikoTimeoutException:
-            print(f'Erro de conexão com o dispositivo {ip}')
+            pop_up_notify(f'Erro de conexão com o dispositivo {ip}',ip)
         except exceptions.ReadTimeout:
-            print(f'O dispositivo {ip} demorou para responder')
+            pop_up_notify(f'O dispositivo {ip} demorou para responder',ip)
+        except exceptions.NetMikoAuthenticationException:
+            pop_up_notify(f'Erro de autenticação no dispositivo {ip}',ip)
+    
+    pop_up_notify('Operação concluída!','FIM')
 
 def interface():
 
@@ -120,30 +141,30 @@ def interface():
         consulta(username,password,newuser,newpass,passwdtype,accesslevel)
 
     #Configuração da janela
-    janela = tk.Tk()
-    janela.title('EDD')
-    janela.geometry('200x300')
+    windows = tk.Toplevel()
+    windows.title('EDD')
+    windows.geometry('200x300')
 
     #Configuração dos widgets (Caixa de texto e botões)
-    label_user = tk.Label(janela, text='User')
-    user = tk.Entry(janela)
-    label_passwd = tk.Label(janela, text='Password')
-    passwd = tk.Entry(janela, show='*')
-    new_user_label = tk.Label(janela, text='New User')
-    new_user = tk.Entry(janela)
-    new_pass_label = tk.Label(janela, text='New Password')
-    new_pass = tk.Entry(janela)
+    label_user = tk.Label(windows, text='User')
+    user = tk.Entry(windows)
+    label_passwd = tk.Label(windows, text='Password')
+    passwd = tk.Entry(windows, show='*')
+    new_user_label = tk.Label(windows, text='New User')
+    new_user = tk.Entry(windows)
+    new_pass_label = tk.Label(windows, text='New Password')
+    new_pass = tk.Entry(windows)
 
     #"Drop Menu"
     level = ['0','15']
     type = ['0','7']
-    access_level_label = tk.Label(janela, text='Access Level')
-    access_level = ttk.Combobox(janela, values=level,width=2)
-    passwd_type_label = tk.Label(janela, text='Password Type')
-    passwd_type = ttk.Combobox(janela, values=type,width=2)
+    access_level_label = tk.Label(windows, text='Access Level')
+    access_level = ttk.Combobox(windows, values=level,width=2)
+    passwd_type_label = tk.Label(windows, text='Password Type')
+    passwd_type = ttk.Combobox(windows, values=type,width=2)
 
     #Botão de enviar
-    botão_enviar = tk.Button(janela,text='Enviar',command=enviar)
+    botão_enviar = tk.Button(windows,text='Enviar',command=enviar)
 
     #Pack dos widgets
     label_user.pack()
@@ -161,26 +182,27 @@ def interface():
     botão_enviar.pack(pady=15)
 
     #Inicia a janela
-    janela.mainloop()
+    windows.grab_set()  # Impede interação com a janela principal
+    windows.wait_window()  # Aguarda o fechamento da janela
 
 def main():
-    janela = tk.Tk()
-    janela.title('EDD')
-    janela.geometry('290x100')
+    windows = tk.Tk()
+    windows.title('EDD')
+    windows.geometry('290x100')
     #janela.resizable(False, False)  # Impede redimensionamento
 
     #Configuração dos widgets (Caixa de texto e botões)
 
-    label = tk.Label(janela, text='Escolha uma opção:', font=("Arial", 20), wraplength=280)
+    label = tk.Label(windows, text='Escolha uma opção:', font=("Arial", 20), wraplength=280)
     label.pack(pady=1)
     
-    criar_user = tk.Button(janela, text='Criar/Alterar Usuario', command=interface)
+    criar_user = tk.Button(windows, text='Criar/Alterar Usuario', command=interface)
     criar_user.pack()
 
-    deletar_user = tk.Button(janela, text='Deletar Usuario', command=interface)
+    deletar_user = tk.Button(windows, text='Deletar Usuario', command=interface)
     deletar_user.pack()
 
-    janela.mainloop()
+    windows.mainloop()
 
-
-main()
+if __name__ == '__main__':
+    main()
