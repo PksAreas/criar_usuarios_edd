@@ -269,21 +269,90 @@ def delete_user_gui():
     windows.grab_set()  # Impede interação com a janela principal
     windows.wait_window()  # Aguarda o fechamento da janela
 
+def gerenciado_ips_gui():
+    with open('ip.txt','r') as file:
+        ips = file.read()
+
+    def adicionar_ip():
+        nonlocal ips
+        ip = ip_entry.get()
+        with open('ip.txt','a') as file:
+            file.write(f'{ip}\n')
+        ip_entry.delete(0, tk.END)# Limpa o campo de entrada
+        pop_up_notify('IP adicionado com sucesso!',ip)
+
+        with open('ip.txt','r') as file:
+            ips = file.read()
+        
+    def remover_ip():
+        ip = ip_remover_entry.get()
+        with open('ip.txt','r') as file:
+            lines = file.readlines()
+        with open('ip.txt','w') as file:
+            for line in lines:
+                if line.strip() != ip:
+                    file.write(line)
+            #file.write('\n')
+        ip_remover_entry.delete(0, tk.END)
+        pop_up_notify('IP removido com sucesso!',ip)
+
+    windows = tk.Toplevel()
+    windows.title('Gerenciador de IPs')
+    windows.geometry('270x450')
+    windows.resizable(False, False)  # Impede redimensionamento
+
+    ip_label = tk.Label(windows, text='Adcionar IP')
+    ip_label.pack(pady=3)
+    ip_entry = tk.Entry(windows)
+    ip_entry.pack(pady=3)
+    botao_add = tk.Button(windows, text='Adicionar',command=adicionar_ip)
+    botao_add.pack(pady=3)
+
+    separador = ttk.Separator(windows, orient='horizontal')
+    separador.pack(fill='x', padx=5, pady=3)
+
+    rm_ip_label = tk.Label(windows, text='Remover IP')
+    rm_ip_label.pack(pady=3)
+    ip_remover_entry = ttk.Combobox(windows, values=ips.split())
+    ip_remover_entry.pack(pady=3,padx=5)
+    botao_remover = tk.Button(windows, text='Remover',command=remover_ip)
+    botao_remover.pack(pady=3)
+
+    separador2 = ttk.Separator(windows, orient='horizontal')
+    separador2.pack(fill='x', padx=5, pady=3)
+
+    list_label = tk.Label(windows, text='Lista de IPs')
+    list_label.pack(pady=3)
+    ips_text = tk.Text(windows, height=10, width=30)
+    ips_text.pack(pady=3)
+    ips_text.insert(tk.END, ips)
+    reload_button = tk.Button(windows, text='Atualizar', command=lambda: ips_text.delete(1.0, tk.END) or ips_text.insert(tk.END, ips))
+    reload_button.pack(pady=3)
+    # Adiciona um botão para fechar a janela
+    close_button = tk.Button(windows, text='Fechar', command=windows.destroy)
+    close_button.pack(pady=3)
+
+
+    windows.grab_set()  # Impede interação com a janela principal
+    windows.wait_window()
+
 def main():
     windows = tk.Tk()
     windows.title('EDD')
-    windows.geometry('290x500')
-    #janela.resizable(False, False)  # Impede redimensionamento
+    windows.resizable(False, False)  # Impede redimensionamento
 
     #Configuração dos widgets (Caixa de texto e botões)
-    label = tk.Label(windows, text='Escolha uma opção:', font=("Arial", 20), wraplength=280)
+    label = tk.Label(windows, text='Gerenciador de Usuarios', font=("Calibri", 20), wraplength=280)
     label.pack(pady=1)
     
     criar_user = tk.Button(windows, text='Criar/Alterar Usuario', command=criar_user_gui)
-    criar_user.pack()
+    criar_user.pack(pady=3)
 
     deletar_user = tk.Button(windows, text='Deletar Usuario', command=delete_user_gui)
-    deletar_user.pack()
+    deletar_user.pack(pady=3)
+
+    gerenciar_ips = tk.Button(windows, text='Gerenciar IPs', command=gerenciado_ips_gui)
+    gerenciar_ips.pack(pady=25)
 
     windows.mainloop()
 
