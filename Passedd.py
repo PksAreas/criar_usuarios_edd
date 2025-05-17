@@ -40,9 +40,7 @@ def pop_up(texto: str) -> str:
     # Inicia o loop da janela
     windows.grab_set()  # Impede interação com a janela principal
     windows.wait_window()  # Aguarda o fechamento da janela
-    print (resposta)
     return resposta
-
 
 def consulta(user,password,new_user,new_pass,passwd_type,access_level):   
     with open('ip.txt','r') as file:
@@ -71,46 +69,37 @@ def consulta(user,password,new_user,new_pass,passwd_type,access_level):
                     
                     texto = 'Usuario encontrado. Deseja Alterar a senha?'
                     resposta = str(pop_up(texto))
-                    print (resposta)
 
                     match resposta:
                         case 'y':
-                            print('Alterando senha...')
                             try: 
                                 net_connect.send_command_timing('config')
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
                                 net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
-                                print('Senha alterada com sucesso!')
                                 net_connect.disconnect()
                             except Exception as e:
-                                print(f'Erro: {e}')
                                 net_connect.disconnect()
                             continue
                         case 'n':
-                            print('Nada foi alterado.')
                             net_connect.disconnect()
                             continue
                 else:
 
                     texto = 'Usuario não encontrado. Deseja criar o usuario?'
                     resposta = pop_up(texto)
-                    print (resposta)
+
                     
                     match resposta:
                         case 'y':
-                            print('Criando usuario...')
                             try: 
                                 net_connect.send_command_timing('config')
                                 net_connect.send_command_timing(f'username {new_user} access-level {access_level}')
                                 net_connect.send_command_timing(f'username {new_user} password {passwd_type} {new_pass}')
-                                print('Usuario criado com sucesso!')
                                 net_connect.disconnect()
                             except Exception as e:
-                                print(f'Erro: {e}')
                                 net_connect.disconnect()
                             continue
                         case 'n':
-                            print('Nada foi alterado.')
                             net_connect.disconnect()
                             
                             continue
@@ -174,4 +163,24 @@ def interface():
     #Inicia a janela
     janela.mainloop()
 
-interface()
+def main():
+    janela = tk.Tk()
+    janela.title('EDD')
+    janela.geometry('290x100')
+    #janela.resizable(False, False)  # Impede redimensionamento
+
+    #Configuração dos widgets (Caixa de texto e botões)
+
+    label = tk.Label(janela, text='Escolha uma opção:', font=("Arial", 20), wraplength=280)
+    label.pack(pady=1)
+    
+    criar_user = tk.Button(janela, text='Criar/Alterar Usuario', command=interface)
+    criar_user.pack()
+
+    deletar_user = tk.Button(janela, text='Deletar Usuario', command=interface)
+    deletar_user.pack()
+
+    janela.mainloop()
+
+
+main()
