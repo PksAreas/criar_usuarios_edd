@@ -270,19 +270,21 @@ def delete_user_gui():
     windows.wait_window()  # Aguarda o fechamento da janela
 
 def gerenciado_ips_gui():
-    with open('ip.txt','r') as file:
-        ips = file.read()
+    def carregar_ips():
+        with open('ip.txt','r') as file:
+            nonlocal ips
+            ips = file.read()
+        ips_text.delete(1.0, tk.END)  # Limpa o campo de texto
+        ips_text.insert(tk.END, ips)  # Insere o conteúdo atualizado
+        ip_remover_entry['values'] = ips.split() # Atualiza as opções do Combobox
 
     def adicionar_ip():
-        nonlocal ips
         ip = ip_entry.get()
         with open('ip.txt','a') as file:
             file.write(f'{ip}\n')
         ip_entry.delete(0, tk.END)# Limpa o campo de entrada
         pop_up_notify('IP adicionado com sucesso!',ip)
-
-        with open('ip.txt','r') as file:
-            ips = file.read()
+        carregar_ips() # Atualiza a lista de IPs no campo de texto
         
     def remover_ip():
         ip = ip_remover_entry.get()
@@ -292,14 +294,17 @@ def gerenciado_ips_gui():
             for line in lines:
                 if line.strip() != ip:
                     file.write(line)
-            #file.write('\n')
         ip_remover_entry.delete(0, tk.END)
         pop_up_notify('IP removido com sucesso!',ip)
+        carregar_ips() # Atualiza a lista de IPs no campo de texto
 
     windows = tk.Toplevel()
     windows.title('Gerenciador de IPs')
-    windows.geometry('270x450')
+    windows.geometry('270x425')
     windows.resizable(False, False)  # Impede redimensionamento
+
+    with open('ip.txt','r') as file:
+        ips = file.read()
 
     ip_label = tk.Label(windows, text='Adcionar IP')
     ip_label.pack(pady=3)
@@ -326,12 +331,9 @@ def gerenciado_ips_gui():
     ips_text = tk.Text(windows, height=10, width=30)
     ips_text.pack(pady=3)
     ips_text.insert(tk.END, ips)
-    reload_button = tk.Button(windows, text='Atualizar', command=lambda: ips_text.delete(1.0, tk.END) or ips_text.insert(tk.END, ips))
-    reload_button.pack(pady=3)
     # Adiciona um botão para fechar a janela
     close_button = tk.Button(windows, text='Fechar', command=windows.destroy)
     close_button.pack(pady=3)
-
 
     windows.grab_set()  # Impede interação com a janela principal
     windows.wait_window()
